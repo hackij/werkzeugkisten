@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta name="theme-color" content="#00377b">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Werkzeugkisten Spengler</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+/* Immer helles Farbschema. Layout: eine schmale, daumenfreundliche Spalte aus Glas-Karten über ruhigen Farbflecken; Lehrkraft- und Druckansicht dürfen breiter werden. */
+:root{
+  --bg:#f4f7fb; --fg:#13212f; --muted:#5a6b7c; --line:rgba(19,33,47,.10);
+  --glass:rgba(255,255,255,.7); --glass-strong:rgba(255,255,255,.9); --glass-edge:rgba(255,255,255,.9);
+  --accent:#00377b; --accent-ink:#ffffff; --blob1:#8db4e6; --blob2:#c9dcf3; --blob3:#5d8fd0;
+  --ok:#1f8a55; --ok-soft:rgba(31,138,85,.13); --bad:#c8352e; --bad-soft:rgba(200,53,46,.12);
+  --more:#c27a0e; --more-soft:rgba(194,122,14,.14); --idle:#8a98a6;
+  --f-display:"Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --f-body:"Barlow Semi Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --r:20px; --shadow:0 10px 30px rgba(20,40,70,.10), inset 0 1px 0 var(--glass-edge);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.45 var(--f-body);min-height:100vh;overflow-x:hidden}
+.blobs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blobs i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.4}
+.blobs i:nth-child(1){width:46vmax;height:46vmax;background:var(--blob1);top:-14vmax;left:-12vmax}
+.blobs i:nth-child(2){width:34vmax;height:34vmax;background:var(--blob2);bottom:-10vmax;right:-8vmax;opacity:.6}
+.blobs i:nth-child(3){width:22vmax;height:22vmax;background:var(--blob3);top:45%;left:60%;opacity:.18}
+.wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;padding-block:20px 60px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.wrap.wide{max-width:1180px}
+.glass{background:var(--glass);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,7vw,2.8rem);font-weight:700;line-height:1;letter-spacing:0}
+h2{font-size:1.35rem;font-weight:700;letter-spacing:0}
+h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.eyebrow{font-size:.74rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top a{color:var(--accent);font-weight:600;text-decoration:none}
+.logo{display:block;width:auto;max-width:60vw;object-fit:contain}
+.sheet .logo{margin-bottom:2mm}
+.hero{padding:20px;display:flex;flex-direction:column;gap:8px}
+.demo{font-size:.82rem;padding:10px 14px;border-radius:14px;background:var(--more-soft);color:var(--fg);border:1px solid var(--line)}
+.demo b{color:var(--more)}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:0;border-radius:14px;padding:13px 18px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--glass-strong);color:var(--fg);border:1px solid var(--line)}
+.btn.small{padding:8px 12px;font-size:.88rem;border-radius:11px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Kistenraster */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;padding:12px}
+.kbtn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px;border-radius:14px;text-decoration:none;color:var(--fg);
+  background:var(--glass-strong);border:1px solid var(--line);min-width:0;overflow:hidden}
+.kbtn .n{font:800 1.6rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.kbtn .s{font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:5px;min-width:0;max-width:100%;white-space:nowrap}
+.kbtn .s span{overflow:hidden;text-overflow:ellipsis}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--idle);flex:none}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}.dot.more{background:var(--more)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);padding:0 16px 14px}
+.legend span{display:flex;align-items:center;gap:6px}
+
+/* Live-Hinweise */
+.live{padding:16px;display:flex;flex-direction:column;gap:10px}
+.live-h{display:flex;align-items:center;gap:8px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--ok-soft)}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.hint{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;border:1px solid var(--line)}
+.hint .ico{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;background:var(--glass-strong)}
+.hint .ico svg{width:30px;height:30px}
+.hint .txt{flex:1;min-width:0}
+.hint.get{background:var(--ok-soft)}
+.hint.give{background:var(--more-soft)}
+.hint.none{background:var(--bad-soft)}
+.hint b{font-weight:700}
+.allgood{padding:12px;border-radius:14px;background:var(--ok-soft);font-weight:600}
+
+/* Formular */
+.setup{padding:16px;display:flex;flex-direction:column;gap:14px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:14px;background:var(--glass-strong);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;border-radius:10px;padding:10px 8px;font-weight:600;font-size:.95rem}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tools{display:flex;flex-direction:column;gap:10px}
+.tool{padding:12px;display:flex;flex-direction:column;gap:10px}
+.tool-h{display:flex;gap:12px;align-items:center}
+.pic{width:68px;height:68px;flex:none;border-radius:14px;background:var(--glass-strong);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;position:relative;color:var(--fg)}
+.pic img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pic svg{width:44px;height:44px}
+.pic.foto svg{display:none}
+.tag{position:absolute;right:4px;bottom:4px;font:800 .7rem/1 var(--f-body);background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:3px 5px}
+.tname{flex:1;min-width:0}
+.tname .nr{font-size:.75rem;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.tname .nm{font-weight:700;font-size:1.05rem;line-height:1.2}
+.choice{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.choice button{border:1.5px solid var(--line);background:var(--glass-strong);border-radius:12px;padding:10px 4px;font-weight:600;font-size:.88rem;display:flex;flex-direction:column;align-items:center;gap:2px}
+.choice button .sym{font-size:1.05rem;font-weight:800}
+.choice button.ok[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.choice button.fehlt[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.choice button.mehr[aria-pressed="true"]{background:var(--more);border-color:var(--more);color:#fff}
+.stepper{display:flex;align-items:center;gap:10px;font-size:.9rem;padding:8px 10px;border-radius:12px;background:var(--more-soft)}
+.stepper button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--glass-strong);font-weight:800}
+.stepper b{font-variant-numeric:tabular-nums;min-width:1.2em;text-align:center}
+.tool.done{border-color:transparent}
+.submitbar{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));padding:12px;display:flex;align-items:center;gap:12px;justify-content:space-between;background:var(--glass-strong)}
+.progress{font-weight:700;font-variant-numeric:tabular-nums}
+.thanks{padding:20px;display:flex;flex-direction:column;gap:10px}
+.sumlist{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.82rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--glass-strong)}
+.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.chip.more{background:var(--more-soft);color:var(--more);border-color:transparent}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.err{padding:12px 14px;border-radius:14px;background:var(--bad-soft);color:var(--bad);font-weight:600}
+
+/* Tauschbörse */
+.board{padding:16px;display:flex;flex-direction:column;gap:10px}
+.trade{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--glass-strong);border:1px solid var(--line)}
+.trade .route{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.trade .w{min-width:0}
+
+/* Lehrkraft */
+.pin{padding:20px;display:flex;flex-direction:column;gap:12px;max-width:380px}
+.pin input{font:inherit;font-size:1.3rem;letter-spacing:.15em;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--glass-strong);color:var(--fg);width:100%}
+.matrix-wrap{overflow-x:auto;padding:4px 0}
+table.matrix{border-collapse:separate;border-spacing:3px;font-size:.8rem;min-width:100%}
+.matrix th{font-weight:600;color:var(--muted);text-align:left;padding:4px 6px;white-space:nowrap}
+.matrix th.k{font:800 .95rem var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums}
+.matrix th.v{writing-mode:vertical-rl;transform:rotate(180deg);height:150px;vertical-align:bottom;padding:6px 2px}
+.matrix td{width:26px;height:26px;border-radius:7px;text-align:center;font-weight:800;background:var(--line)}
+.matrix td.ok{background:var(--ok-soft);color:var(--ok)}
+.matrix td.fehlt{background:var(--bad);color:#fff}
+.matrix td.mehr{background:var(--more);color:#fff}
+.matrix td.meta{width:auto;background:transparent;font-weight:500;color:var(--muted);text-align:left;white-space:nowrap;padding:0 8px}
+.chron{padding:16px;display:flex;flex-direction:column;gap:10px}
+.ev{display:grid;grid-template-columns:62px 1fr;gap:12px;padding:12px;border-radius:14px;background:var(--glass-strong);border:1px solid var(--line)}
+.ev .kno{font:800 1.4rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.ev .kno small{display:block;font:600 .68rem var(--f-body);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.ev .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.ev .when{font-size:.82rem;color:var(--muted)}
+.ev.alarm{border-color:var(--bad);box-shadow:inset 4px 0 0 var(--bad)}
+.between{font-size:.84rem;padding:8px 10px;border-radius:10px;background:var(--bad-soft)}
+.filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--glass-strong);color:var(--fg)}
+.cols{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:980px){.cols{grid-template-columns:3fr 2fr}}
+.cols > *{min-width:0}
+
+/* Druckbögen */
+.sheets{display:flex;flex-direction:column;gap:24px;align-items:center}
+.sheet{width:100%;max-width:210mm;aspect-ratio:210/297;background:#fff;color:#13212f;border-radius:6px;position:relative;overflow:hidden;
+  padding:12mm 13mm;display:flex;flex-direction:column;gap:6mm;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.sheet .sb{position:absolute;border-radius:50%;filter:blur(30px);opacity:.45;z-index:0}
+.sheet > *:not(.sb){position:relative;z-index:1}
+.sheet-h{display:grid;grid-template-columns:1fr auto;gap:6mm;align-items:start}
+.sheet-h .big{font:800 clamp(1.6rem,6vw,3rem)/1 var(--f-display);color:#13212f}
+.sheet-h .sub{font-size:clamp(.7rem,1.8vw,.95rem);color:#4a5a6a}
+.qr{width:clamp(70px,22vw,44mm);aspect-ratio:1;background:rgba(255,255,255,.85);border-radius:10px;padding:2mm;border:1px solid rgba(19,33,47,.12)}
+.qr svg{width:100%;height:100%;display:block}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;font-size:clamp(.55rem,1.5vw,.78rem)}
+.steps div{background:rgba(255,255,255,.7);border:1px solid rgba(19,33,47,.1);border-radius:8px;padding:2mm}
+.steps b{display:block;font:800 1.1em var(--f-display);color:#00377b}
+.slist{display:grid;grid-template-columns:1fr 1fr;gap:1.6mm 4mm;font-size:clamp(.55rem,1.6vw,.85rem);flex:1;align-content:start}
+.slist div{display:flex;align-items:center;gap:2.5mm;padding:1.3mm 2mm;border-radius:7px;background:rgba(255,255,255,.72);border:1px solid rgba(19,33,47,.08)}
+.slist .sn{font-weight:800;color:#00377b;min-width:1.6em;font-variant-numeric:tabular-nums}
+.slist .sp{width:2.6em;height:2.6em;flex:none;display:grid;place-items:center;background:#fff;border-radius:6px;overflow:hidden}
+.slist svg{width:1.7em;height:1.7em;color:#13212f}
+.slist .sp img{width:100%;height:100%;object-fit:contain}
+.slist .sp.foto svg{display:none}
+.sheet-f{display:flex;justify-content:space-between;font-size:clamp(.5rem,1.4vw,.75rem);color:#4a5a6a;border-top:1px solid rgba(19,33,47,.12);padding-top:2mm}
+@media print{
+  @page{size:A4;margin:0}
+  body{background:#fff}
+  .blobs,.noprint{display:none!important}
+  .wrap{padding:0!important;max-width:none}
+  .sheets{gap:0}
+  .sheet{box-shadow:none;border-radius:0;width:210mm;height:297mm;max-width:none;break-after:page;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet-h .big{font-size:3rem}.sheet-h .sub{font-size:.95rem}.qr{width:44mm}
+  .steps{font-size:.78rem}.slist{font-size:.9rem}.sheet-f{font-size:.75rem}
+}
+</style>
+
+<div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+<main class="wrap" id="app"><div class="glass hero"><p class="muted">Lädt …</p></div></main>
+
+<script>
+/* ============================================================
+   EINSTELLUNGEN – hier trägst du deine Supabase-Daten ein.
+   Leer gelassen läuft die App im Demo-Modus (nur auf diesem Gerät).
+   ============================================================ */
+const CONFIG = {
+  SUPABASE_URL: "https://nsposypwimmrcwebrgjf.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_AEV1QX3LxHjVOFPaXfsOAg_bMvqD4GV",
+  ANZAHL_KISTEN: 22,         // wie viele Werkzeugkisten gibt es?
+  LOGO: "logo.png",          // Logo-Datei neben index.html (wird ausgeblendet, wenn sie fehlt)
+  BASIS_URL: "https://hackij.github.io/werkzeugkisten/"   // Adresse der App für die QR-Codes, z. B. "https://hackij.github.io/werkzeugkisten/"
+};
+
+const WERKZEUGE = [
+  {id:1, name:"Idealschere", lr:"L", zusatz:"links", icon:"schere"},
+  {id:2, name:"Idealschere", lr:"R", zusatz:"rechts", icon:"schere"},
+  {id:3, name:"Lochschere", lr:"L", zusatz:"links", icon:"lochschere"},
+  {id:4, name:"Lochschere", lr:"R", zusatz:"rechts", icon:"lochschere"},
+  {id:5, name:"Schlosserhammer", icon:"hammer"},
+  {id:6, name:"Kreuzschweifhammer", icon:"hammer2"},
+  {id:7, name:"Schonhammer", icon:"schonhammer"},
+  {id:8, name:"Kunststoffhammer keilförmig", icon:"keilhammer"},
+  {id:9, name:"Schmiege", icon:"schmiege"},
+  {id:10, name:"Blechknabberer MASC", icon:"knabberer"},
+  {id:11, name:"Falzzange gekröpft", icon:"falzzange"},
+  {id:12, name:"Quetschfalzzange", icon:"falzzange"},
+  {id:13, name:"Mini-Falzzange", icon:"falzzange"},
+  {id:14, name:"Flachzange", icon:"zange"},
+  {id:15, name:"Spitzzange", icon:"spitzzange"},
+  {id:16, name:"Falzklotz", icon:"klotz"}
+];
+const WNAME = w => { const t = WERKZEUGE.find(x=>x.id===w); return t ? t.name + (t.zusatz ? " " + t.zusatz : "") : "Werkzeug " + w; };
+const PHASE = {start:"Praxisbeginn", ende:"Freitag · Übergabe", tausch:"Tausch", lehrer:"Lehrkraft"};
+const DEMO = !(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+
+/* ---------- Piktogramme (werden durch Fotos in bilder/01.webp … ersetzt) ---------- */
+const P = 'fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS = {
+  schere:`<svg viewBox="0 0 64 64" ${P}><circle cx="17" cy="47" r="8"/><circle cx="34" cy="52" r="7"/><path d="M22 41 40 18l14-8M29 46l19-20 8-12"/><circle cx="36" cy="30" r="1.5" fill="currentColor"/></svg>`,
+  lochschere:`<svg viewBox="0 0 64 64" ${P}><circle cx="17" cy="47" r="8"/><circle cx="34" cy="52" r="7"/><path d="M22 41 38 22c4-6 12-8 16-12M29 46l17-18c3-4 6-12 4-16"/></svg>`,
+  hammer:`<svg viewBox="0 0 64 64" ${P}><path d="M12 16h28l6 5v6l-6 5H12z"/><path d="M28 32v24"/></svg>`,
+  hammer2:`<svg viewBox="0 0 64 64" ${P}><path d="M8 20l8-4h24l14 8-14 8H16l-8-4z"/><path d="M28 32v24"/></svg>`,
+  schonhammer:`<svg viewBox="0 0 64 64" ${P}><rect x="8" y="14" width="14" height="20" rx="5"/><rect x="42" y="14" width="14" height="20" rx="5"/><path d="M22 24h20M32 24v32"/></svg>`,
+  keilhammer:`<svg viewBox="0 0 64 64" ${P}><path d="M8 18h20v14H8zM28 18l26 4v6l-26 4"/><path d="M18 32v24"/></svg>`,
+  schmiege:`<svg viewBox="0 0 64 64" ${P}><path d="M8 50h48"/><path d="M8 44h40v6"/><path d="M14 46 46 12"/><circle cx="14" cy="47" r="3"/></svg>`,
+  knabberer:`<svg viewBox="0 0 64 64" ${P}><path d="M8 20h34l10 4v8l-10 4H30l-4 20H16l4-20h-12z"/><path d="M52 28h6"/></svg>`,
+  falzzange:`<svg viewBox="0 0 64 64" ${P}><path d="M14 8h20v12H14z"/><path d="M22 20v8M30 20v8"/><circle cx="26" cy="31" r="3.5"/><path d="M23 34l-9 22M29 34l9 22"/></svg>`,
+  zange:`<svg viewBox="0 0 64 64" ${P}><path d="M27 28 24 8h6l2 20M37 28l3-20h-6"/><circle cx="32" cy="32" r="4"/><path d="M29 35l-10 21M35 35l10 21"/></svg>`,
+  spitzzange:`<svg viewBox="0 0 64 64" ${P}><path d="M30 28 31 4M34 28 33 4"/><circle cx="32" cy="32" r="4"/><path d="M29 35l-10 21M35 35l10 21"/></svg>`,
+  klotz:`<svg viewBox="0 0 64 64" ${P}><path d="M8 26l12-8h36v20l-12 8H8z"/><path d="M8 26h36v20M44 26l12-8"/></svg>`
+};
+function pic(w, size){
+  const t = WERKZEUGE.find(x=>x.id===w); const nn = String(w).padStart(2,"0");
+  return `<div class="pic"${size?` style="width:${size}px;height:${size}px"`:""}>${ICONS[t.icon]}
+    <img src="bilder/${nn}.webp" alt="" onload="this.parentNode.classList.add('foto')" onerror="this.remove()">
+    ${t.lr?`<span class="tag">${t.lr}</span>`:""}</div>`;
+}
+
+/* ---------- Hilfen ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LS = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const fmt = s => new Date(s).toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const fmtDay = s => new Date(s).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
+const KISTEN = Array.from({length:CONFIG.ANZAHL_KISTEN}, (_,i)=>i+1);
+
+/* ============================================================
+   DATENSPEICHER: Demo (lokal) oder Supabase (live für alle)
+   ============================================================ */
+function demoStore(){
+  const KEY = "wk-demo-v1"; let mem = null; let ch = null;
+  try{ ch = new BroadcastChannel("wk-demo"); }catch(e){}
+  const subs = [];
+  function seed(){
+    const now = Date.now(), ago = h => new Date(now - h*36e5).toISOString();
+    const bestand = [];
+    for (const k of KISTEN.slice(0, Math.min(8, KISTEN.length)))
+      for (const w of WERKZEUGE) bestand.push({kiste:k, werkzeug:w.id, status:"ok", anzahl:0, klasse:"MKP11", phase:"start", updated_at:ago(1)});
+    const set = (k,w,status,anzahl=0)=>{ const r = bestand.find(x=>x.kiste===k&&x.werkzeug===w); if(r){ r.status=status; r.anzahl=anzahl; } };
+    set(1,2,"fehlt"); set(5,2,"mehr",1); set(3,15,"fehlt"); set(6,7,"mehr",1);
+    const meldungen = [
+      {id:6, created_at:ago(1), kiste:6, klasse:"MKP11", phase:"start", art:"kontrolle", fehlt:[], mehr:[{w:7,n:1}]},
+      {id:5, created_at:ago(1.1), kiste:5, klasse:"MKP11", phase:"start", art:"kontrolle", fehlt:[], mehr:[{w:2,n:1}]},
+      {id:4, created_at:ago(1.2), kiste:3, klasse:"MKP11", phase:"start", art:"kontrolle", fehlt:[15], mehr:[]},
+      {id:3, created_at:ago(1.3), kiste:1, klasse:"MKP11", phase:"start", art:"kontrolle", fehlt:[2], mehr:[]},
+      {id:2, created_at:ago(75), kiste:3, klasse:"MKP12", phase:"ende", art:"kontrolle", fehlt:[], mehr:[]},
+      {id:1, created_at:ago(75.2), kiste:1, klasse:"MKP12", phase:"ende", art:"kontrolle", fehlt:[], mehr:[]}
+    ];
+    return {bestand, meldungen, nextId:7};
+  }
+  function db(){ if(!mem){ mem = LS.get(KEY,null) || seed(); LS.set(KEY,mem); } return mem; }
+  function save(){ LS.set(KEY,mem); subs.forEach(f=>f()); try{ ch && ch.postMessage("x"); }catch(e){} }
+  if (ch) ch.onmessage = () => { mem = LS.get(KEY, mem); subs.forEach(f=>f()); };
+  window.addEventListener("storage", e => { if(e.key===KEY){ mem = LS.get(KEY, mem); subs.forEach(f=>f()); } });
+  return {
+    async load(){ const d = db(); return {bestand: d.bestand.slice(), meldungen: d.meldungen.slice().sort((a,b)=>b.created_at.localeCompare(a.created_at))}; },
+    async submit({kiste,klasse,phase,items}){
+      const d = db(), now = new Date().toISOString();
+      d.bestand = d.bestand.filter(r=>r.kiste!==kiste);
+      for (const w of WERKZEUGE){ const it = items[w.id]; d.bestand.push({kiste, werkzeug:w.id, status:it.status, anzahl: it.status==="mehr"?it.anzahl:0, klasse, phase, updated_at:now}); }
+      d.meldungen.push({id:d.nextId++, created_at:now, kiste, klasse, phase, art:"kontrolle",
+        fehlt: WERKZEUGE.filter(w=>items[w.id].status==="fehlt").map(w=>w.id),
+        mehr: WERKZEUGE.filter(w=>items[w.id].status==="mehr").map(w=>({w:w.id,n:items[w.id].anzahl}))});
+      save();
+    },
+    async tausch(von,nach,werkzeug,klasse){
+      const d = db(); const ziel = d.bestand.find(r=>r.kiste===nach&&r.werkzeug===werkzeug);
+      const quelle = d.bestand.find(r=>r.kiste===von&&r.werkzeug===werkzeug);
+      if(!ziel || ziel.status!=="fehlt" || !quelle || quelle.status!=="mehr") return false;
+      const now = new Date().toISOString();
+      ziel.status="ok"; ziel.anzahl=0; ziel.updated_at=now;
+      quelle.anzahl = Math.max(0, quelle.anzahl-1); if(quelle.anzahl===0) quelle.status="ok"; quelle.updated_at=now;
+      d.meldungen.push({id:d.nextId++, created_at:now, kiste:nach, klasse, phase:"tausch", art:"tausch", werkzeug, partner:von, fehlt:[], mehr:[]});
+      save(); return true;
+    },
+    async pinOk(pin){ return pin === "1234"; },
+    async kisteOk(pin,kiste){
+      if(pin!=="1234") throw new Error("PIN falsch");
+      const d = db(), now = new Date().toISOString();
+      d.bestand = d.bestand.filter(r=>r.kiste!==kiste);
+      for (const w of WERKZEUGE) d.bestand.push({kiste, werkzeug:w.id, status:"ok", anzahl:0, klasse:"–", phase:"lehrer", updated_at:now});
+      d.meldungen.push({id:d.nextId++, created_at:now, kiste, klasse:"Lehrkraft", phase:"lehrer", art:"lehrer", fehlt:[], mehr:[]});
+      save();
+    },
+    reset(){ mem = seed(); save(); },
+    subscribe(f){ subs.push(f); }
+  };
+}
+
+function supaStore(){
+  const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  return {
+    async load(){
+      const [b,m] = await Promise.all([
+        sb.from("bestand").select("*"),
+        sb.from("meldungen").select("*").order("created_at",{ascending:false}).limit(600)
+      ]);
+      if (b.error) throw b.error; if (m.error) throw m.error;
+      return {bestand:b.data, meldungen:m.data};
+    },
+    async submit({kiste,klasse,phase,items}){
+      const now = new Date().toISOString();
+      const rows = WERKZEUGE.map(w=>({kiste, werkzeug:w.id, status:items[w.id].status, anzahl: items[w.id].status==="mehr"?items[w.id].anzahl:0, klasse, phase, updated_at:now}));
+      let r = await sb.from("bestand").upsert(rows); if (r.error) throw r.error;
+      r = await sb.from("meldungen").insert({kiste, klasse, phase, art:"kontrolle",
+        fehlt: WERKZEUGE.filter(w=>items[w.id].status==="fehlt").map(w=>w.id),
+        mehr: WERKZEUGE.filter(w=>items[w.id].status==="mehr").map(w=>({w:w.id,n:items[w.id].anzahl}))});
+      if (r.error) throw r.error;
+    },
+    async tausch(von,nach,werkzeug,klasse){
+      const r = await sb.rpc("tausch_erledigt",{p_von:von, p_nach:nach, p_werkzeug:werkzeug, p_klasse:klasse});
+      if (r.error) throw r.error; return r.data === true;
+    },
+    async pinOk(pin){ const r = await sb.rpc("lehrer_pin_ok",{p_pin:pin}); return !r.error && r.data === true; },
+    async kisteOk(pin,kiste){ const r = await sb.rpc("lehrer_kiste_ok",{p_pin:pin, p_kiste:kiste}); if (r.error) throw r.error; if (r.data!==true) throw new Error("PIN falsch"); },
+    subscribe(f){
+      sb.channel("werkzeug-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"bestand"},f)
+        .on("postgres_changes",{event:"*",schema:"public",table:"meldungen"},f)
+        .subscribe();
+    }
+  };
+}
+
+let store;
+try { store = DEMO ? demoStore() : supaStore(); }
+catch(e){ store = demoStore(); }
+
+/* ============================================================
+   LOGIK: Wer kann wem aushelfen?
+   ============================================================ */
+const S = {bestand:[], meldungen:[], loaded:false, error:null};
+
+function kisteStatus(k){
+  const rows = S.bestand.filter(r=>r.kiste===k);
+  if (!rows.length) return {cls:"", label:"offen"};
+  const f = rows.filter(r=>r.status==="fehlt").length, m = rows.filter(r=>r.status==="mehr").length;
+  if (f) return {cls:"bad", label: f+" fehlt"};
+  if (m) return {cls:"more", label: m+" zu viel"};
+  return {cls:"ok", label:"komplett"};
+}
+function lastCheck(k){ return S.meldungen.find(m=>m.kiste===k && (m.art==="kontrolle"||m.art==="lehrer")); }
+
+function matches(){
+  const trades = [], noSource = [], spare = [];
+  for (const w of WERKZEUGE){
+    const need = S.bestand.filter(r=>r.werkzeug===w.id && r.status==="fehlt").map(r=>r.kiste).sort((a,b)=>a-b);
+    const pool = S.bestand.filter(r=>r.werkzeug===w.id && r.status==="mehr").sort((a,b)=>a.kiste-b.kiste)
+      .flatMap(r=>Array(Math.max(1,r.anzahl||1)).fill(r.kiste));
+    need.forEach((k,i)=>{ if (i < pool.length) trades.push({w:w.id, von:pool[i], nach:k}); else noSource.push({w:w.id, kiste:k}); });
+    pool.slice(need.length).forEach(k=>spare.push({w:w.id, kiste:k}));
+  }
+  return {trades, noSource, spare};
+}
+
+/* ============================================================
+   ANSICHTEN
+   ============================================================ */
+const app = $("#app");
+const demoNote = () => DEMO ? `<div class="demo"><b>Demo-Modus.</b> Die Beispieldaten liegen nur auf diesem Gerät. Öffne die Seite in zwei Tabs, um den Live-Abgleich zu sehen. Live für alle wird es mit den Supabase-Daten oben im Code.</div>` : "";
+const logo = (h) => CONFIG.LOGO ? `<img class="logo" src="${CONFIG.LOGO}" alt="BS1 Bayreuth Spengler" style="height:${h}" onerror="this.remove()">` : "";
+const topbar = (back) => `<div class="top">${back?`<a href="#start">← Alle Kisten</a>`:`<span class="row" style="gap:10px">${logo("44px")}<span class="eyebrow">BS1 Bayreuth · Spengler</span></span>`}
+  <span class="eyebrow">MKP11 · MKP12</span></div>`;
+
+function route(){
+  const h = location.hash.replace("#","");
+  const m = h.match(/^kiste-(\d+)$/);
+  if (m && KISTEN.includes(+m[1])) return {view:"kiste", k:+m[1]};
+  if (h==="lehrer") return {view:"lehrer"};
+  if (h==="druck") return {view:"druck"};
+  return {view:"start"};
+}
+
+/* ---------- Startseite ---------- */
+function renderStart(){
+  app.className = "wrap";
+  app.innerHTML = `${topbar(false)}
+  <section class="glass hero"><h1>Werkzeugkisten</h1>
+    <p class="muted">Tippe auf deine Kiste.</p></section>
+  ${demoNote()}
+  <section class="glass"><div class="kgrid">${KISTEN.map(k=>{ const s = kisteStatus(k);
+    return `<a class="kbtn" href="#kiste-${k}"><span class="n">${k}</span><span class="s"><i class="dot ${s.cls}"></i><span>${s.label}</span></span></a>`; }).join("")}</div>
+    
+  </section>
+  ${boardHtml()}
+  <div class="row noprint"><a class="btn ghost small" href="#lehrer" style="text-decoration:none">Lehrkraft-Ansicht</a>
+    <a class="btn ghost small" href="#druck" style="text-decoration:none">Kistenlisten mit QR-Code</a>
+    ${DEMO?`<button class="btn ghost small" id="demoReset">Demo zurücksetzen</button>`:""}</div>`;
+  const r = $("#demoReset"); if (r) r.onclick = () => store.reset();
+}
+
+function boardHtml(){
+  const {trades, noSource, spare} = matches();
+  return `<section class="glass board"><div class="live-h"><i class="pulse"></i><h2>Tauschbörse</h2></div>
+    ${!trades.length && !noSource.length && !spare.length ? `<div class="allgood">Alle Kisten sind ausgeglichen.</div>` : ""}
+    ${trades.map(t=>`<div class="trade">${pic(t.w,44)}<div class="w"><b>${esc(WNAME(t.w))}</b><div class="muted" style="font-size:.85rem">Kiste ${t.von} hat eine zu viel</div></div><span class="route">${t.von} → ${t.nach}</span></div>`).join("")}
+    ${noSource.map(t=>`<div class="trade" style="background:var(--bad-soft)">${pic(t.w,44)}<div class="w"><b>${esc(WNAME(t.w))}</b><div style="font-size:.85rem">fehlt in Kiste ${t.kiste}, keine Kiste hat eine übrig</div></div><span class="route">Lehrkraft</span></div>`).join("")}
+    ${spare.map(t=>`<div class="trade" style="background:var(--more-soft)">${pic(t.w,44)}<div class="w"><b>${esc(WNAME(t.w))}</b><div style="font-size:.85rem">liegt in Kiste ${t.kiste} zu viel, niemand vermisst sie</div></div><span class="route">abgeben</span></div>`).join("")}
+  </section>`;
+}
+
+/* ---------- Kistenansicht (Schüler) ---------- */
+let form = null;
+function newForm(k){
+  return {kiste:k, klasse: LS.get("wk-klasse","MKP11"), phase: new Date().getDay()===5 ? "ende" : "start", items:{}, sent:null, busy:false, error:null};
+}
+function renderKiste(k){
+  app.className = "wrap";
+  if (!form || form.kiste !== k) form = newForm(k);
+  app.innerHTML = `${topbar(true)}
+    <section class="glass hero"><span class="eyebrow">Werkzeugkiste</span><h1>Kiste ${k}</h1>
+      <p class="muted">Zuständig: Nr. ${k} der MKP11 und Nr. ${k} der MKP12.</p></section>
+    ${demoNote()}
+    <section class="glass live" id="live"></section>
+    <div id="formArea" style="display:flex;flex-direction:column;gap:16px"></div>`;
+  renderLive(); renderForm();
+}
+
+function renderLive(){
+  const el = $("#live"); if (!el || !form) return; const k = form.kiste;
+  const {trades, noSource, spare} = matches();
+  const holen = trades.filter(t=>t.nach===k), bringen = trades.filter(t=>t.von===k);
+  const fehltOhne = noSource.filter(t=>t.kiste===k), uebrig = spare.filter(t=>t.kiste===k);
+  const last = lastCheck(k); const st = kisteStatus(k);
+  let html = `<div class="live-h"><i class="pulse"></i><h2>Live für Kiste ${k}</h2></div>`;
+  html += last ? `<p class="muted" style="font-size:.88rem">Letzte Kontrolle: ${esc(last.klasse)}, ${esc(PHASE[last.phase]||last.phase)}, ${fmt(last.created_at)}</p>`
+               : `<p class="muted" style="font-size:.88rem">Diese Kiste wurde noch nie kontrolliert.</p>`;
+  if (!holen.length && !bringen.length && !fehltOhne.length && !uebrig.length)
+    html += st.cls==="ok" ? `<div class="allgood">Alles da. Nichts zu tun.</div>` : "";
+  html += holen.map(t=>`<div class="hint get"><div class="ico">${ICONS[WERKZEUGE[t.w-1].icon]}</div>
+      <div class="txt"><b>Hol dir die ${esc(WNAME(t.w))} bei Kiste ${t.von}.</b><div style="font-size:.85rem">Dort ist eine zu viel.</div></div>
+      <button class="btn small" data-get="${t.w}" data-von="${t.von}">Erhalten</button></div>`).join("");
+  html += bringen.map(t=>`<div class="hint give"><div class="ico">${ICONS[WERKZEUGE[t.w-1].icon]}</div>
+      <div class="txt"><b>Kiste ${t.nach} braucht deine ${esc(WNAME(t.w))}.</b><div style="font-size:.85rem">Du hast eine zu viel. Kiste ${t.nach} holt sie ab, du kannst sie auch hinbringen.</div></div></div>`).join("");
+  html += fehltOhne.map(t=>`<div class="hint none"><div class="ico">${ICONS[WERKZEUGE[t.w-1].icon]}</div>
+      <div class="txt"><b>${esc(WNAME(t.w))} fehlt.</b><div style="font-size:.85rem">Keine andere Kiste hat eine übrig. Sag der Lehrkraft Bescheid.</div></div></div>`).join("");
+  html += uebrig.map(t=>`<div class="hint give"><div class="ico">${ICONS[WERKZEUGE[t.w-1].icon]}</div>
+      <div class="txt"><b>Du hast eine ${esc(WNAME(t.w))} zu viel.</b><div style="font-size:.85rem">Gerade vermisst sie niemand. Gib sie bei der Lehrkraft ab.</div></div></div>`).join("");
+  el.innerHTML = html;
+  el.querySelectorAll("[data-get]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "…";
+    try { await store.tausch(+b.dataset.von, k, +b.dataset.get, form.klasse); await refresh(); }
+    catch(e){ b.disabled = false; b.textContent = "Erhalten"; alertBox("Das hat nicht geklappt. Prüfe das WLAN und tippe noch einmal."); }
+  });
+}
+function alertBox(msg){ const fa = $("#formArea"); if (fa) fa.insertAdjacentHTML("afterbegin", `<div class="err">${esc(msg)}</div>`); }
+
+function renderForm(){
+  const fa = $("#formArea"); if (!fa) return;
+  if (form.sent){
+    const s = form.sent;
+    fa.innerHTML = `<section class="glass thanks"><span class="eyebrow">Gespeichert · ${fmt(s.at)}</span><h2>Danke, Kontrolle ist eingetragen.</h2>
+      <p class="muted">${esc(s.klasse)} · ${esc(PHASE[s.phase])}</p>
+      <div class="sumlist">${s.fehlt.length||s.mehr.length ? "" : `<span class="chip ok">Alle 16 Werkzeuge vorhanden</span>`}
+        ${s.fehlt.map(w=>`<span class="chip bad">fehlt: ${esc(WNAME(w))}</span>`).join("")}
+        ${s.mehr.map(x=>`<span class="chip more">${x.n}× zu viel: ${esc(WNAME(x.w))}</span>`).join("")}</div>
+      
+      <div class="row"><button class="btn ghost" id="again">Neue Kontrolle starten</button></div></section>`;
+    $("#again").onclick = () => { form = newForm(form.kiste); renderForm(); };
+    return;
+  }
+  const answered = WERKZEUGE.filter(w=>form.items[w.id]).length;
+  fa.innerHTML = `
+    <section class="glass setup">
+      <div><div class="eyebrow" style="margin-bottom:6px">Deine Klasse</div>
+        <div class="seg" role="group" aria-label="Klasse">${["MKP11","MKP12"].map(c=>`<button data-klasse="${c}" aria-pressed="${form.klasse===c}">${c}</button>`).join("")}</div></div>
+      <div><div class="eyebrow" style="margin-bottom:6px">Welche Kontrolle?</div>
+        <div class="seg" role="group" aria-label="Kontrolle">${["start","ende"].map(p=>`<button data-phase="${p}" aria-pressed="${form.phase===p}">${PHASE[p]}</button>`).join("")}</div></div>
+      
+    </section>
+    <div class="tools">${WERKZEUGE.map(w=>toolCard(w)).join("")}</div>
+    ${form.error?`<div class="err">${esc(form.error)}</div>`:""}
+    <div class="glass submitbar"><span class="progress">${answered} / 16 geprüft</span>
+      <button class="btn" id="send" ${answered<16||form.busy?"disabled":""}>${form.busy?"Wird gesendet …":"Kontrolle absenden"}</button></div>`;
+  fa.querySelectorAll("[data-klasse]").forEach(b=>b.onclick=()=>{ form.klasse=b.dataset.klasse; LS.set("wk-klasse",form.klasse); renderForm(); });
+  fa.querySelectorAll("[data-phase]").forEach(b=>b.onclick=()=>{ form.phase=b.dataset.phase; renderForm(); });
+  fa.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{
+    const w = +b.dataset.w, st = b.dataset.st; const cur = form.items[w];
+    form.items[w] = {status:st, anzahl: st==="mehr" ? (cur&&cur.anzahl||1) : 0};
+    const y = window.scrollY; renderForm(); window.scrollTo(0,y);
+  });
+  fa.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
+    const w = +b.dataset.wid, it = form.items[w]; it.anzahl = Math.max(1, Math.min(9, it.anzahl + (+b.dataset.step)));
+    const y = window.scrollY; renderForm(); window.scrollTo(0,y);
+  });
+  $("#send").onclick = submit;
+}
+function toolCard(w){
+  const it = form.items[w.id];
+  const btn = (st, sym, label) => `<button class="${st}" data-w="${w.id}" data-st="${st}" aria-pressed="${it&&it.status===st}"><span class="sym">${sym}</span>${label}</button>`;
+  return `<article class="glass tool ${it?"done":""}">
+    <div class="tool-h">${pic(w.id)}<div class="tname"><div class="nr">Nr. ${w.id}</div><div class="nm">${esc(w.name)}${w.zusatz?` <span class="muted">${w.zusatz}</span>`:""}</div></div></div>
+    <div class="choice">${btn("ok","✓","vorhanden")}${btn("fehlt","✕","fehlt")}${btn("mehr","+","mehrfach")}</div>
+    ${it&&it.status==="mehr"?`<div class="stepper">Wie viele zu viel?
+      <button data-step="-1" data-wid="${w.id}" aria-label="weniger">−</button><b>${it.anzahl}</b><button data-step="1" data-wid="${w.id}" aria-label="mehr">+</button></div>`:""}
+  </article>`;
+}
+async function submit(){
+  form.busy = true; form.error = null; renderForm();
+  try{
+    await store.submit({kiste:form.kiste, klasse:form.klasse, phase:form.phase, items:form.items});
+    form.sent = {at:new Date().toISOString(), klasse:form.klasse, phase:form.phase,
+      fehlt: WERKZEUGE.filter(w=>form.items[w.id].status==="fehlt").map(w=>w.id),
+      mehr: WERKZEUGE.filter(w=>form.items[w.id].status==="mehr").map(w=>({w:w.id, n:form.items[w.id].anzahl}))};
+    form.busy = false; await refresh(); renderForm(); window.scrollTo({top:0,behavior:"smooth"});
+  }catch(e){
+    form.busy = false; form.error = "Senden hat nicht geklappt. Prüfe das WLAN und tippe noch einmal auf „Kontrolle absenden“."; renderForm();
+  }
+}
+
+/* ---------- Lehrkraft ---------- */
+const L = {pin: (()=>{ try{ return sessionStorage.getItem("wk-pin"); }catch(e){ return null; } })(), ok:false, filter:"alle", msg:null};
+async function renderLehrer(){
+  app.className = "wrap wide";
+  if (!L.ok && L.pin) L.ok = await store.pinOk(L.pin);
+  if (!L.ok){
+    app.innerHTML = `${topbar(true)}<section class="glass pin"><h2>Lehrkraft-Ansicht</h2>
+      <p class="muted">PIN eingeben.${DEMO?" Im Demo-Modus: 1234":""}</p>
+      <form id="pinf" class="row"><input id="pin" type="password" autocomplete="off" autocapitalize="off" aria-label="PIN">
+      <button class="btn" type="submit">Öffnen</button></form>${L.msg?`<div class="err">${esc(L.msg)}</div>`:""}</section>`;
+    $("#pinf").onsubmit = async e => { e.preventDefault(); const p = $("#pin").value.trim();
+      if (await store.pinOk(p)){ L.pin=p; L.ok=true; L.msg=null; try{ sessionStorage.setItem("wk-pin",p); }catch(e){} }
+      else L.msg = "PIN stimmt nicht.";
+      renderLehrer(); };
+    return;
+  }
+  const chron = chronik();
+  const shown = chron.filter(e => L.filter==="alle" ? true : L.filter==="neu" ? e.neu.length : e.kiste===+L.filter);
+  app.innerHTML = `${topbar(true)}
+  <section class="glass hero"><span class="eyebrow">Lehrkraft</span><h1>Übersicht aller Kisten</h1>
+    <p class="muted">Rot heißt fehlt, Orange heißt zu viel. Die Chronik zeigt, zwischen welchen Kontrollen ein Werkzeug verschwunden ist.</p></section>
+  ${demoNote()}
+  ${L.msg?`<div class="err">${esc(L.msg)}</div>`:""}
+  <section class="glass" style="padding:16px"><h2 style="margin-bottom:8px">Bestand jetzt</h2><div class="matrix-wrap"><table class="matrix">
+    <thead><tr><th></th>${WERKZEUGE.map(w=>`<th class="v">${w.id} ${esc(WNAME(w.id))}</th>`).join("")}<th>letzte Kontrolle</th><th></th></tr></thead>
+    <tbody>${KISTEN.map(k=>{ const lc = lastCheck(k);
+      return `<tr><th class="k">${k}</th>${WERKZEUGE.map(w=>{ const r = S.bestand.find(x=>x.kiste===k&&x.werkzeug===w.id);
+        if(!r) return `<td title="nicht kontrolliert"></td>`;
+        return `<td class="${r.status}" title="${esc(WNAME(w.id))}">${r.status==="fehlt"?"✕":r.status==="mehr"?"+"+r.anzahl:"✓"}</td>`; }).join("")}
+        <td class="meta">${lc?`${esc(lc.klasse)} · ${fmtDay(lc.created_at)}`:"–"}</td>
+        <td class="meta"><button class="btn ghost small" data-full="${k}">vollständig setzen</button></td></tr>`; }).join("")}</tbody></table></div>
+    <p class="muted" style="font-size:.82rem;margin-top:8px">„Vollständig setzen“ nutzt du, wenn du Werkzeug ersetzt oder eine Kiste selbst aufgefüllt hast.</p></section>
+  <div class="cols">
+    <section class="glass chron"><div class="top"><h2>Chronik</h2>
+      <div class="filter"><label class="muted" for="flt" style="font-size:.85rem">Zeigen</label><select id="flt">
+        <option value="alle">alle Einträge</option><option value="neu">nur neu Fehlendes</option>
+        ${KISTEN.map(k=>`<option value="${k}">Kiste ${k}</option>`).join("")}</select></div></div>
+      ${shown.length ? shown.slice(0,150).map(evHtml).join("") : `<p class="muted">Noch keine passenden Einträge.</p>`}</section>
+    ${boardHtml()}
+  </div>`;
+  $("#flt").value = L.filter; $("#flt").onchange = e => { L.filter = e.target.value; renderLehrer(); };
+  app.querySelectorAll("[data-full]").forEach(b=>b.onclick = async () => {
+    const k = +b.dataset.full;
+    if (b.dataset.confirm !== "1"){ b.dataset.confirm="1"; b.textContent = "Kiste "+k+" wirklich?"; return; }
+    b.disabled = true;
+    try{ await store.kisteOk(L.pin, k); L.msg=null; await refresh(); }
+    catch(e){ L.msg = "Konnte Kiste "+k+" nicht setzen. PIN prüfen oder neu laden."; renderLehrer(); }
+  });
+}
+function chronik(){
+  const asc = S.meldungen.slice().sort((a,b)=>a.created_at.localeCompare(b.created_at));
+  const prev = {}; const out = [];
+  for (const m of asc){
+    const e = {...m, neu:[], vorher:null};
+    if (m.art==="kontrolle"){
+      const p = prev[m.kiste];
+      if (p){ e.vorher = p; e.neu = (m.fehlt||[]).filter(w => !(p.fehlt||[]).includes(w)); }
+      prev[m.kiste] = m;
+    } else if (m.art==="lehrer"){ prev[m.kiste] = {...m, fehlt:[]}; }
+    else if (m.art==="tausch"){
+      for (const k of [m.kiste, m.partner]) if (prev[k]) prev[k] = {...prev[k], fehlt:(prev[k].fehlt||[]).filter(w=> !(k===m.kiste && w===m.werkzeug))};
+    }
+    out.push(e);
+  }
+  return out.reverse();
+}
+function evHtml(e){
+  if (e.art==="tausch") return `<div class="ev"><div class="kno"><small>Kiste</small>${e.kiste}</div><div class="body">
+    <span class="when">${fmt(e.created_at)} · Tausch · ${esc(e.klasse)}</span><span>${esc(WNAME(e.werkzeug))} von Kiste ${e.partner} erhalten</span></div></div>`;
+  if (e.art==="lehrer") return `<div class="ev"><div class="kno"><small>Kiste</small>${e.kiste}</div><div class="body">
+    <span class="when">${fmt(e.created_at)} · Lehrkraft</span><span>Kiste als vollständig gesetzt</span></div></div>`;
+  const f = e.fehlt||[], m = e.mehr||[];
+  return `<div class="ev ${e.neu.length?"alarm":""}"><div class="kno"><small>Kiste</small>${e.kiste}</div><div class="body">
+    <span class="when">${fmt(e.created_at)} · ${esc(e.klasse)} · ${esc(PHASE[e.phase]||e.phase)}</span>
+    <div class="sumlist">${!f.length&&!m.length?`<span class="chip ok">vollständig</span>`:""}
+      ${f.map(w=>`<span class="chip bad">${e.neu.includes(w)?"neu ":""}fehlt: ${esc(WNAME(w))}</span>`).join("")}
+      ${m.map(x=>`<span class="chip more">${x.n}× zu viel: ${esc(WNAME(x.w))}</span>`).join("")}</div>
+    ${e.neu.length && e.vorher ? `<div class="between">Verschwunden zwischen <b>${esc(e.vorher.klasse)}, ${esc(PHASE[e.vorher.phase]||e.vorher.phase)} (${fmtDay(e.vorher.created_at)})</b> und <b>${esc(e.klasse)}, ${esc(PHASE[e.phase]||e.phase)} (${fmtDay(e.created_at)})</b>.</div>`:""}
+  </div></div>`;
+}
+
+/* ---------- Druckbögen ---------- */
+function baseUrl(){
+  if (CONFIG.BASIS_URL) return CONFIG.BASIS_URL.replace(/#.*$/,"");
+  return location.href.replace(/#.*$/,"");
+}
+function qrSvg(text){
+  try{ const q = qrcode(0,"M"); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:0, scalable:true}); }
+  catch(e){ return `<p style="font-size:9px;word-break:break-all">${esc(text)}</p>`; }
+}
+function renderDruck(){
+  app.className = "wrap wide";
+  const blobs = ["#8db4e6","#c9dcf3","#5d8fd0"];
+  app.innerHTML = `<div class="noprint" style="display:flex;flex-direction:column;gap:16px">${topbar(true)}
+    <section class="glass hero"><h1>Kistenlisten zum Laminieren</h1>
+      <p class="muted">Ein DIN-A4-Bogen pro Kiste. Der QR-Code öffnet direkt die Kontrolle der jeweiligen Kiste.</p>
+      ${DEMO?`<p class="muted" style="font-size:.88rem">Die QR-Codes zeigen auf die Adresse dieser Seite. Trag vor dem Drucken unter BASIS_URL die GitHub-Adresse ein.</p>`
+            :`<div class="row"><button class="btn" id="print">Alle Bögen drucken</button></div>`}</section></div>
+    <div class="sheets">${KISTEN.map((k,i)=>{ const url = baseUrl()+"#kiste-"+k;
+      return `<article class="sheet">
+        <i class="sb" style="width:70mm;height:70mm;background:${blobs[i%3]};top:-20mm;right:-15mm"></i>
+        <i class="sb" style="width:60mm;height:60mm;background:${blobs[(i+1)%3]};bottom:-15mm;left:-15mm"></i>
+        <div class="sheet-h"><div>${logo("18mm")}<div class="sub" style="font-weight:700;letter-spacing:.08em;text-transform:uppercase">BS1 Bayreuth · Spengler</div>
+          <div class="big">Werkzeugkiste ${k}</div>
+          <div class="sub" style="margin-top:2mm">Zuständig: Nr. ${k} der MKP11 · Nr. ${k} der MKP12</div></div>
+          <div class="qr">${qrSvg(url)}</div></div>
+        <div class="steps"><div><b>1</b>QR-Code scannen</div><div><b>2</b>Klasse und Kontrolle wählen</div><div><b>3</b>Jedes Werkzeug prüfen</div><div><b>4</b>Absenden. Montag und Freitag!</div></div>
+        <div class="slist">${WERKZEUGE.map(w=>`<div><span class="sn">${w.id}</span><span class="sp">${ICONS[w.icon]}<img src="bilder/${String(w.id).padStart(2,"0")}.webp" alt="" onload="this.parentNode.classList.add('foto')" onerror="this.remove()"></span><span>${esc(w.name)}${w.zusatz?" "+w.zusatz:""}</span></div>`).join("")}</div>
+        <div class="sheet-f"><span>Fehlt etwas? Live-Hinweis in der App zeigt, wo es liegt.</span><span>Kiste ${k} / ${KISTEN.length}</span></div>
+      </article>`; }).join("")}</div>`;
+  const p = $("#print"); if (p) p.onclick = () => window.print();
+}
+
+/* ============================================================
+   START
+   ============================================================ */
+let timer = null;
+async function refresh(){
+  try{ const d = await store.load(); S.bestand = d.bestand; S.meldungen = d.meldungen; S.loaded = true; S.error = null; }
+  catch(e){ S.error = e; }
+  update();
+}
+function update(){
+  const r = route();
+  if (r.view==="kiste" && form && form.kiste===r.k && $("#live")) { renderLive(); return; }  // Formular nicht zurücksetzen
+  if (r.view==="druck" && $(".sheets")) return;
+  draw();
+}
+function draw(){
+  const r = route();
+  if (S.error && !S.loaded){ app.className="wrap"; app.innerHTML = `${topbar(false)}<div class="err">Keine Verbindung zur Datenbank. Prüfe das WLAN und lade die Seite neu.</div>`; return; }
+  if (r.view==="kiste") renderKiste(r.k);
+  else if (r.view==="lehrer") renderLehrer();
+  else if (r.view==="druck") renderDruck();
+  else renderStart();
+}
+window.addEventListener("hashchange", () => { draw(); window.scrollTo(0,0); });
+store.subscribe(() => { clearTimeout(timer); timer = setTimeout(refresh, 250); });
+setInterval(refresh, 60000);   // Sicherheitsnetz, falls die Live-Verbindung abreißt
+refresh();
+</script>
+
+</body>
+</html>
